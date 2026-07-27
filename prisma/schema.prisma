@@ -20,6 +20,7 @@ model Account {
   properties Property[]
   leads Lead[]
   matches Match[]
+  propertyImages PropertyImage[]
 }
 
 model User {
@@ -49,6 +50,7 @@ model Property {
 
   account Account @relation(fields: [accountId], references: [id])
   matches Match[]
+  images PropertyImage[]
 }
 
 model Lead {
@@ -84,4 +86,17 @@ model Match {
   property Property @relation(fields: [propertyId], references: [id])
 
   @@unique([leadId, propertyId])
+}
+
+model PropertyImage {
+  id           String   @id @default(cuid())
+  accountId    String
+  propertyId   String
+  url          String
+  thumbnailUrl String?
+  order        Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  account  Account  @relation(fields: [accountId], references: [id])
+  property Property @relation(fields: [propertyId], references: [id])
 }

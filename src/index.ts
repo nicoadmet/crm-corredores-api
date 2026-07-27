@@ -24,7 +24,10 @@ function escapeHtml(text: string) {
 // Ficha pública de una propiedad: HTML server-side con meta tags Open Graph, para que WhatsApp arme el preview.
 server.get("/p/:id", async (request, reply) => {
   const { id } = request.params as { id: string };
-  const property = await adminPrisma.property.findUnique({ where: { id } });
+  const property = await adminPrisma.property.findUnique({
+    where: { id },
+    include: { images: { orderBy: { order: "asc" }, take: 1 } },
+  });
 
   if (!property) {
     reply.code(404).type("text/html").send("<h1>Propiedad no encontrada</h1>");
@@ -35,23 +38,29 @@ server.get("/p/:id", async (request, reply) => {
   const description = escapeHtml(
     `${property.operationType} · ${property.propertyType} en ${property.zone} — ${property.currency} ${property.price}`
   );
+  const imageUrl = property.images[0]?.url;
 
   reply.type("text/html").send(`<!DOCTYPE html>
-  <html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <title>${title}</title>
-    <meta property="og:title" content="${title}" />
-    <meta property="og:description" content="${description}" />
-    <meta property="og:type" content="website" />
-  </head>
-  <body style="font-family: sans-serif; padding: 24px; max-width: 480px; margin: 0 auto;">
-    <h1>${title}</h1>
-    <p>${description}</p>
-  </body>
-  </html>`);
+    <html lang="es">
+    <head>
+      <meta charset="UTF-8" />
+      <title>${title}</title>
+      <meta property="og:title" content="${title}" />
+      <meta property="og:description" content="${description}" />
+      <meta property="og:type" content="website" />
+      ${imageUrl ? `<meta property="og:image" content="${imageUrl}" />` : ""}
+    </head>
+    <body style="font-family: sans-serif; padding: 24px; max-width: 480px; margin: 0 auto;">
+      <h1>${title}</h1>
+      ${imageUrl ? `<img src="${imageUrl}" alt="${title}" style="width: 100%; border-radius: 8px;" />` : ""}
+      <p>${description}</p>
+    </body>
+    </html>`
+  );
 });
 
-server.listen({ port: 4000 }, () => {
-  console.log("Servidor corriendo en http://localhost:4000");
+const port = process.env.PORT ? Number(process.env.PORT) : 4000;
+
+server.listen({ port, host: "0.0.0.0" }, () => {
+  console.log(`Servidor corriendo en el puerto ${port}`);
 });
