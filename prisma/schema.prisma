@@ -15,4 +15,73 @@ model Account {
   plan      String   @default("trial")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  users User[]
+  properties Property[]
+  leads Lead[]
+  matches Match[]
+}
+
+model User {
+  id         String   @id @default(cuid())
+  accountId  String
+  supabaseId String   @unique
+  email      String   @unique
+  name       String
+  role       String   @default("owner")
+  createdAt  DateTime @default(now())
+
+  account Account @relation(fields: [accountId], references: [id])
+}
+
+model Property {
+  id            String   @id @default(cuid())
+  accountId     String
+  title         String
+  operationType String
+  propertyType  String
+  status        String   @default("disponible")
+  price         Decimal
+  currency      String   @default("USD")
+  zone          String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  account Account @relation(fields: [accountId], references: [id])
+  matches Match[]
+}
+
+model Lead {
+  id            String   @id @default(cuid())
+  accountId     String
+  contactName   String
+  contactPhone  String
+  operationType String
+  propertyType  String
+  zone          String
+  budgetMin     Decimal?
+  budgetMax     Decimal?
+  status        String   @default("activo")
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  account Account @relation(fields: [accountId], references: [id])
+  matches Match[]
+}
+
+model Match {
+  id         String   @id @default(cuid())
+  accountId  String
+  leadId     String
+  propertyId String
+  score      Int
+  status     String   @default("sugerido")
+  createdAt  DateTime @default(now())
+
+  account  Account  @relation(fields: [accountId], references: [id])
+  lead     Lead     @relation(fields: [leadId], references: [id])
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@unique([leadId, propertyId])
 }
