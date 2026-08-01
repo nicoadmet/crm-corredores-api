@@ -36,17 +36,34 @@ model User {
 }
 
 model Property {
-  id            String   @id @default(cuid())
-  accountId     String
-  title         String
-  operationType String
-  propertyType  String
-  status        String   @default("disponible")
-  price         Decimal
-  currency      String   @default("USD")
-  zone          String
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id             String    @id @default(cuid())
+  accountId      String
+  title          String
+  operationType  String
+  propertyType   String
+  status         String    @default("disponible")
+  price          Decimal
+  currency       String    @default("USD")
+  zone           String
+  address        String?
+  rooms          Int?
+  bedrooms       Int?
+  bathrooms      Int?
+  garage         Boolean   @default(false)
+  garageSpaces   Int?
+  coveredArea    Float?
+  totalArea      Float?
+  floor          String?
+  age            Int?
+  description    String?
+  ownerName      String?
+  ownerPhone     String?
+  ownerNotes     String?
+  exclusive      Boolean   @default(false)
+  exclusiveUntil DateTime?
+  deletedAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   account Account @relation(fields: [accountId], references: [id])
   matches Match[]
@@ -54,19 +71,26 @@ model Property {
 }
 
 model Lead {
-  id            String   @id @default(cuid())
-  accountId     String
-  contactName   String
-  contactPhone  String
-  operationType String
-  propertyType  String
-  zone          String
-  budgetMin     Decimal?
-  budgetMax     Decimal?
-  status        String   @default("activo")
-  notes         String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id               String    @id @default(cuid())
+  accountId        String
+  contactName      String
+  contactPhone     String
+  contactEmail     String?
+  operationType    String
+  propertyType     String
+  zones            String[]
+  budgetMin        Decimal?
+  budgetMax        Decimal?
+  minRooms         Int?
+  minBathrooms     Int?
+  needsGarage      Boolean?
+  priority         String?
+  nextFollowUpDate DateTime?
+  status           String    @default("activo")
+  notes            String?
+  deletedAt        DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   account Account @relation(fields: [accountId], references: [id])
   matches Match[]
