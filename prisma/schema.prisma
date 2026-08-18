@@ -21,6 +21,12 @@ model Account {
   leads Lead[]
   matches Match[]
   propertyImages PropertyImage[]
+  priceHistories PriceHistory[]
+  leadActivities LeadActivity[]
+  catalogs Catalog[]
+  catalogProperties CatalogProperty[]
+  agendaEvents AgendaEvent[]
+  pushSubscriptions PushSubscription[]
 }
 
 model User {
@@ -33,6 +39,7 @@ model User {
   createdAt  DateTime @default(now())
 
   account Account @relation(fields: [accountId], references: [id])
+  pushSubscriptions PushSubscription[]
 }
 
 model Property {
@@ -61,6 +68,7 @@ model Property {
   ownerNotes     String?
   exclusive      Boolean   @default(false)
   exclusiveUntil DateTime?
+  tags           String[]  @default([])
   deletedAt      DateTime?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
@@ -68,32 +76,38 @@ model Property {
   account Account @relation(fields: [accountId], references: [id])
   matches Match[]
   images PropertyImage[]
+  priceHistory PriceHistory[]
+  catalogEntries CatalogProperty[]
+  agendaEvents AgendaEvent[]
 }
 
 model Lead {
-  id               String    @id @default(cuid())
-  accountId        String
-  contactName      String
-  contactPhone     String
-  contactEmail     String?
-  operationType    String
-  propertyType     String
-  zones            String[]
-  budgetMin        Decimal?
-  budgetMax        Decimal?
-  minRooms         Int?
-  minBathrooms     Int?
-  needsGarage      Boolean?
-  priority         String?
-  nextFollowUpDate DateTime?
-  status           String    @default("activo")
-  notes            String?
-  deletedAt        DateTime?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id                 String    @id @default(cuid())
+  accountId          String
+  contactName        String
+  contactPhone       String
+  contactEmail       String?
+  operationType      String
+  propertyType       String
+  zones              String[]
+  budgetMin          Decimal?
+  budgetMax          Decimal?
+  minRooms           Int?
+  minBathrooms       Int?
+  needsGarage        Boolean?
+  priority           String?
+  nextFollowUpDate   DateTime?
+  followUpNotifiedAt DateTime?
+  status             String    @default("activo")
+  notes              String?
+  deletedAt          DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   account Account @relation(fields: [accountId], references: [id])
   matches Match[]
+  activities LeadActivity[]
+  agendaEvents AgendaEvent[]
 }
 
 model Match {
@@ -103,6 +117,7 @@ model Match {
   propertyId String
   score      Int
   status     String   @default("sugerido")
+  notifiedAt DateTime?
   createdAt  DateTime @default(now())
 
   account  Account  @relation(fields: [accountId], references: [id])
@@ -123,4 +138,97 @@ model PropertyImage {
 
   account  Account  @relation(fields: [accountId], references: [id])
   property Property @relation(fields: [propertyId], references: [id])
+}
+
+// Un registro por cada precio que tuvo una propiedad (el de alta + cada vez que cambió).
+model PriceHistory {
+  id         String   @id @default(cuid())
+  accountId  String
+  propertyId String
+  price      Decimal
+  currency   String
+  createdAt  DateTime @default(now())
+
+  account  Account  @relation(fields: [accountId], references: [id])
+  property Property @relation(fields: [propertyId], references: [id])
+}
+
+// Timeline de interacciones con un lead: llamada/visita/mensaje/nota (cargadas a mano) o
+// "estado" (generada sola cuando cambia el status del lead).
+model LeadActivity {
+  id        String   @id @default(cuid())
+  accountId String
+  leadId    String
+  type      String
+  note      String?
+  createdAt DateTime @default(now())
+
+  account Account @relation(fields: [accountId], references: [id])
+  lead    Lead    @relation(fields: [leadId], references: [id])
+}
+
+// Un catálogo agrupa varias propiedades elegidas por el corredor bajo un link público único
+// (/c/:id), para compartir una selección completa por WhatsApp en vez de una por una.
+model Catalog {
+  id        String   @id @default(cuid())
+  accountId String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  account    Account           @relation(fields: [accountId], references: [id])
+  properties CatalogProperty[]
+}
+
+// Fila de unión entre un Catalog y una Property (con orden de aparición).
+model CatalogProperty {
+  id         String   @id @default(cuid())
+  accountId  String
+  catalogId  String
+  propertyId String
+  order      Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  account  Account  @relation(fields: [accountId], references: [id])
+  catalog  Catalog  @relation(fields: [catalogId], references: [id])
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@unique([catalogId, propertyId])
+}
+
+// Evento de agenda: visita a una propiedad (ligada a un Lead + Property) o tarea/recordatorio
+// libre, con fecha y hora. A diferencia de Lead.nextFollowUpDate (que es sólo una fecha), acá
+// la hora importa (ej: "visita a las 15:30").
+model AgendaEvent {
+  id         String    @id @default(cuid())
+  accountId  String
+  title      String
+  type       String    @default("tarea") // "visita" | "tarea"
+  date       DateTime
+  leadId     String?
+  propertyId String?
+  notes      String?
+  status     String    @default("pendiente") // "pendiente" | "realizado" | "cancelado"
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  account  Account   @relation(fields: [accountId], references: [id])
+  lead     Lead?     @relation(fields: [leadId], references: [id])
+  property Property? @relation(fields: [propertyId], references: [id])
+}
+
+// Suscripción de un navegador/dispositivo a notificaciones push (Web Push API). Cada dispositivo
+// que activa notificaciones guarda acá su "endpoint" (a quién avisarle) — routes/internalNotifications.ts
+// es quien realmente manda los avisos, llamado por un cron externo.
+model PushSubscription {
+  id        String   @id @default(cuid())
+  accountId String
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  account Account @relation(fields: [accountId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
 }

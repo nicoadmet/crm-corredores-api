@@ -1,4 +1,4 @@
-// Valida el token de Supabase Auth y resuelve (o crea) el accountId del usuario logueado.
+// Valida el token de Supabase Auth y resuelve (o crea) el accountId/userId del usuario logueado.
 import type { CreateFastifyContextOptions } from "@trpc/server/adapters/fastify";
 import { createClient } from "@supabase/supabase-js";
 import { adminPrisma } from "./db";
@@ -9,10 +9,10 @@ export async function createContext({ req }: CreateFastifyContextOptions) {
   const authHeader = req.headers.authorization;
   const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
-  if (!token) return { accountId: null };
+  if (!token) return { accountId: null, userId: null };
 
   const { data, error } = await supabase.auth.getUser(token);
-  if (error || !data.user) return { accountId: null };
+  if (error || !data.user) return { accountId: null, userId: null };
 
   let user = await adminPrisma.user.findUnique({ where: { supabaseId: data.user.id } });
 
@@ -30,7 +30,7 @@ export async function createContext({ req }: CreateFastifyContextOptions) {
     });
   }
 
-  return { accountId: user.accountId };
+  return { accountId: user.accountId, userId: user.id };
 }
 
 export type Context = Awaited<ReturnType<typeof createContext>>;

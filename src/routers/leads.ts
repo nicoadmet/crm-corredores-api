@@ -1,6 +1,8 @@
 // Router de leads: listar (paginado, con búsqueda y filtros), obtener uno, crear, editar
 // y borrar (soft-delete) leads de la cuenta logueada.
 // Crear/editar/borrar un lead mantiene sus matches sincronizados automáticamente (ver services/matchSync.ts).
+// getById trae también la timeline de interacciones (LeadActivity); addActivity carga una nueva a mano,
+// y update genera sola una entrada tipo "estado" cuando cambia el status del lead.
 
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
@@ -44,6 +46,19 @@ export const leadsRouter = router({
       })
     ),
 
+  // Versión liviana de "list" para llenar selects (ej: elegir un lead en Agenda.tsx) — sin
+  // paginar, sólo id + nombre, hasta 500 leads activos.
+  listOptions: protectedProcedure.query(({ ctx }) =>
+    withAccount(ctx.accountId, async (tx) =>
+      tx.lead.findMany({
+        where: { accountId: ctx.accountId, deletedAt: null },
+        select: { id: true, contactName: true },
+        orderBy: { contactName: "asc" },
+        take: 500,
+      })
+    )
+  ),
+
   // Leads con seguimiento vencido, para hoy, o en los próximos 3 días (para el panel de "Seguimientos
   // urgentes" en Leads.tsx) + el conteo de vencidos (para el badge en la navegación).
   followUpSummary: protectedProcedure.query(({ ctx }) =>
@@ -82,6 +97,7 @@ export const leadsRouter = router({
       withAccount(ctx.accountId, async (tx) => {
         const lead = await tx.lead.findFirst({
           where: { id: input.id, accountId: ctx.accountId, deletedAt: null },
+          include: { activities: { orderBy: { createdAt: "desc" } } },
         });
         if (!lead) {
           throw new TRPCError({ code: "NOT_FOUND", message: "Lead no encontrado" });
@@ -105,7 +121,8 @@ export const leadsRouter = router({
         minBathrooms: z.number().int().positive().optional(),
         needsGarage: z.boolean().optional(),
         priority: z.enum(["caliente", "tibio", "frio"]).optional(),
-        nextFollowUpDate: z.coerce.date().optional(),
+        // Acepta null además de Date: permite guardar (o dejar) el lead sin fecha de seguimiento.
+        nextFollowUpDate: z.coerce.date().nullable().optional(),
         notes: z.string().optional(),
       })
     )
@@ -133,7 +150,10 @@ export const leadsRouter = router({
         minBathrooms: z.number().int().positive().optional(),
         needsGarage: z.boolean().optional(),
         priority: z.enum(["caliente", "tibio", "frio"]).optional(),
-        nextFollowUpDate: z.coerce.date().optional(),
+        // z.coerce.date().nullable(): si el front manda null explícito (campo vaciado a propósito),
+        // Prisma lo interpreta como "poné NULL". Si el campo no se manda (undefined), Prisma lo ignora
+        // y deja el valor que ya tenía — esa es la diferencia que antes rompía el "borrar la fecha".
+        nextFollowUpDate: z.coerce.date().nullable().optional(),
         notes: z.string().optional(),
         status: z.string().optional(),
       })
@@ -145,9 +165,60 @@ export const leadsRouter = router({
         if (!existing) {
           throw new TRPCError({ code: "NOT_FOUND", message: "Lead no encontrado" });
         }
-        const lead = await tx.lead.update({ where: { id }, data });
+
+        // Si la fecha de seguimiento cambió (a otra fecha distinta, o se borró), hay que resetear
+        // el aviso push ya mandado — si no, un vencimiento ya notificado una vez nunca volvería a
+        // avisar aunque se cargue una fecha nueva (ver routes/internalNotifications.ts).
+        const followUpChanged =
+          data.nextFollowUpDate !== undefined &&
+          (existing.nextFollowUpDate?.getTime() ?? null) !== (data.nextFollowUpDate?.getTime() ?? null);
+
+        const lead = await tx.lead.update({
+          where: { id },
+          data: { ...data, ...(followUpChanged ? { followUpNotifiedAt: null } : {}) },
+        });
+
+        // Si cambió el status, queda anotado solo en la timeline (no hace falta cargarlo a mano).
+        if (data.status !== undefined && existing.status !== data.status) {
+          await tx.leadActivity.create({
+            data: {
+              accountId: ctx.accountId,
+              leadId: lead.id,
+              type: "estado",
+              note: `Estado: ${existing.status} → ${lead.status}`,
+            },
+          });
+        }
+
         await syncMatchesForLead(tx, ctx.accountId, lead);
         return lead;
+      })
+    ),
+
+  addActivity: protectedProcedure
+    .input(
+      z.object({
+        leadId: z.string(),
+        type: z.enum(["llamada", "visita", "mensaje", "nota"]),
+        note: z.string().min(1),
+      })
+    )
+    .mutation(({ ctx, input }) =>
+      withAccount(ctx.accountId, async (tx) => {
+        const lead = await tx.lead.findFirst({
+          where: { id: input.leadId, accountId: ctx.accountId, deletedAt: null },
+        });
+        if (!lead) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Lead no encontrado" });
+        }
+        return tx.leadActivity.create({
+          data: {
+            accountId: ctx.accountId,
+            leadId: input.leadId,
+            type: input.type,
+            note: input.note,
+          },
+        });
       })
     ),
 
