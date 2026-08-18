@@ -12,6 +12,16 @@ import { registerInternalNotificationsRoute } from "./routes/internalNotificatio
 
 const server = Fastify({ logger: true });
 
+// Fastify por default sólo sabe interpretar "application/json" y "text/plain" — cualquier otro
+// Content-Type sin parser registrado lo rechaza con 415, aunque el cuerpo venga vacío. Esto rompía
+// el cron externo (cron-job.org) que le pega a /internal/check-notifications: manda un Content-Type
+// que Fastify no reconoce, aunque el body quede vacío. Este parser "comodín" sólo actúa como
+// respaldo para los Content-Type que Fastify no tiene registrados — no reemplaza el parser de JSON
+// que ya usa el resto de la app (tRPC, etc.), esos siguen andando igual.
+server.addContentTypeParser("*", function (request, payload, done) {
+  done(null, undefined);
+});
+
 await server.register(cors, { origin: true });
 await server.register(fastifyTRPCPlugin, {
   prefix: "/trpc",
