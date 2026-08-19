@@ -1,7 +1,7 @@
 // Ficha pública de una propiedad: HTML server-side con meta tags Open Graph,
 // para que WhatsApp arme el preview al compartir el link.
 import type { FastifyInstance } from "fastify";
-import { adminPrisma } from "../db";
+import { adminPrisma } from "../../db";
 
 // Escapa caracteres especiales para no permitir inyectar HTML/JS desde el título de una propiedad.
 function escapeHtml(text: string) {

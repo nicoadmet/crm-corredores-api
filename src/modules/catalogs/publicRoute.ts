@@ -1,7 +1,7 @@
 // Página pública de un catálogo: HTML server-side con meta tags Open Graph (para el preview de
 // WhatsApp) y una mini-card por propiedad, cada una linkeando a su ficha individual /p/:id.
 import type { FastifyInstance } from "fastify";
-import { adminPrisma } from "../db";
+import { adminPrisma } from "../../db";
 
 // Escapa caracteres especiales para no permitir inyectar HTML/JS desde el nombre del catálogo
 // o el título de una propiedad.

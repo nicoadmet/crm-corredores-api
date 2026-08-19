@@ -1,9 +1,9 @@
 // Router de matches: sólo lectura — los matches se crean, actualizan y borran solos
 // cuando se guarda o elimina un lead o una propiedad (ver services/matchSync.ts).
 
-import { router, protectedProcedure } from "../trpc";
-import { withAccount } from "../db";
-import { matchDetails } from "../services/matching";
+import { router, protectedProcedure } from "../../trpc";
+import { withAccount } from "../../db";
+import { matchDetails } from "../../services/matching";
 
 export const matchesRouter = router({
   list: protectedProcedure.query(({ ctx }) =>

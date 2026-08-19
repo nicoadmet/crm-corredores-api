@@ -6,9 +6,9 @@
 
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { router, protectedProcedure } from "../trpc";
-import { withAccount } from "../db";
-import { syncMatchesForLead, deleteMatchesForLead } from "../services/matchSync";
+import { router, protectedProcedure } from "../../trpc";
+import { withAccount } from "../../db";
+import { syncMatchesForLead, deleteMatchesForLead } from "../../services/matchSync";
 
 export const leadsRouter = router({
   list: protectedProcedure

@@ -2,14 +2,14 @@
 
 import { router, publicProcedure } from "../trpc";
 import { prisma } from "../db";
-import { propertiesRouter } from "./properties";
-import { propertyImagesRouter } from "./propertyImages";
-import { leadsRouter } from "./leads";
-import { matchesRouter } from "./matches";
-import { catalogsRouter } from "./catalogs";
-import { statsRouter } from "./stats";
-import { agendaRouter } from "./agenda";
-import { pushSubscriptionsRouter } from "./pushSubscriptions";
+import { propertiesRouter } from "../modules/properties/router";
+import { propertyImagesRouter } from "../modules/propertyImages/router";
+import { leadsRouter } from "../modules/leads/router";
+import { matchesRouter } from "../modules/matches/router";
+import { catalogsRouter } from "../modules/catalogs/router";
+import { statsRouter } from "../modules/stats/router";
+import { agendaRouter } from "../modules/agenda/router";
+import { pushSubscriptionsRouter } from "../modules/push/router";
 
 export const appRouter = router({
   health: publicProcedure.query(() => ({ ok: true })),

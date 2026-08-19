@@ -6,7 +6,7 @@
 // a la vez, no una sola.
 import type { FastifyInstance } from "fastify";
 import webpush from "web-push";
-import { adminPrisma } from "../db";
+import { adminPrisma } from "../../db";
 
 // Umbral más alto que el mínimo para que exista un match (50, ver services/matching.ts): sólo los
 // matches realmente fuertes generan una notificación, para no generar ruido/desconfianza.

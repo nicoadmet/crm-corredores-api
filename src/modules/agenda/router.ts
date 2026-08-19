@@ -4,8 +4,8 @@
 // los pendientes por día (Vencidos/Hoy/Mañana/Esta semana/Más adelante).
 
 import { z } from "zod";
-import { router, protectedProcedure } from "../trpc";
-import { withAccount } from "../db";
+import { router, protectedProcedure } from "../../trpc";
+import { withAccount } from "../../db";
 
 export const agendaRouter = router({
   list: protectedProcedure

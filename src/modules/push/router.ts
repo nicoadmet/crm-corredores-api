@@ -2,8 +2,8 @@
 // (Web Push API) al activar notificaciones, para que el backend le pueda mandar avisos más
 // adelante (ver routes/internalNotifications.ts, que es quien realmente los manda).
 import { z } from "zod";
-import { router, protectedProcedure } from "../trpc";
-import { withAccount } from "../db";
+import { router, protectedProcedure } from "../../trpc";
+import { withAccount } from "../../db";
 
 export const pushSubscriptionsRouter = router({
   subscribe: protectedProcedure

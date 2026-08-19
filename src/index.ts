@@ -6,9 +6,9 @@ import cors from "@fastify/cors";
 import { fastifyTRPCPlugin } from "@trpc/server/adapters/fastify";
 import { appRouter } from "./routers";
 import { createContext } from "./context";
-import { registerPublicPropertyRoute } from "./routes/publicProperty";
-import { registerPublicCatalogRoute } from "./routes/publicCatalog";
-import { registerInternalNotificationsRoute } from "./routes/internalNotifications";
+import { registerPublicPropertyRoute } from "./modules/properties/publicRoute";
+import { registerPublicCatalogRoute } from "./modules/catalogs/publicRoute";
+import { registerInternalNotificationsRoute } from "./modules/push/internalRoute";
 
 const server = Fastify({ logger: true });
 

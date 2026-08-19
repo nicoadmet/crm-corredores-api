@@ -2,8 +2,8 @@
 // para el panel de "Estadísticas" — nada de reportes pesados, sólo conteos por estado y una
 // tasa de conversión aproximada.
 
-import { router, protectedProcedure } from "../trpc";
-import { withAccount } from "../db";
+import { router, protectedProcedure } from "../../trpc";
+import { withAccount } from "../../db";
 
 const PROPERTY_STATUSES = ["disponible", "reservada", "vendida", "pausada"] as const;
 const LEAD_STATUSES = ["activo", "en_proceso", "cerrado", "perdido"] as const;
