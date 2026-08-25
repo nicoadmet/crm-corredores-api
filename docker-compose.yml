@@ -1,0 +1,26 @@
+services:
+  api:
+    build:
+      context: .
+      args:
+        DATABASE_URL: ${DATABASE_URL}
+    ports:
+      - "4000:4000"
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+      - /app/node_modules
+
+  web:
+    build:
+      context: ../crm-corredores-web
+    ports:
+      - "5173:5173"
+    env_file:
+      - ../crm-corredores-web/.env
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      - ../crm-corredores-web:/app
+      - /app/node_modules
