@@ -17,15 +17,22 @@ export async function createContext({ req }: CreateFastifyContextOptions) {
   let user = await adminPrisma.user.findUnique({ where: { supabaseId: data.user.id } });
 
   if (!user) {
+    // El nombre sale de los metadatos del usuario: lo manda el formulario de registro como `name`,
+    // y Google lo devuelve como `full_name` al entrar con OAuth. Importa más de lo que parece: es
+    // la firma que aparece en las páginas públicas que el corredor comparte por WhatsApp. Si no
+    // viene ninguno, se cae al email (que es lo que pasaba siempre antes).
+    const metadata = data.user.user_metadata as { name?: string; full_name?: string } | null;
+    const displayName = metadata?.name?.trim() || metadata?.full_name?.trim() || data.user.email || "Nueva cuenta";
+
     const account = await adminPrisma.account.create({
-      data: { name: data.user.email ?? "Nueva cuenta", slug: data.user.id },
+      data: { name: displayName, slug: data.user.id },
     });
     user = await adminPrisma.user.create({
       data: {
         accountId: account.id,
         supabaseId: data.user.id,
         email: data.user.email ?? "",
-        name: data.user.email ?? "",
+        name: displayName,
       },
     });
   }
