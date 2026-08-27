@@ -7,6 +7,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "../../trpc";
 import { withAccount } from "../../db";
+import { catalogLinkMeta } from "../../services/publicPage";
 
 export const catalogsRouter = router({
   list: protectedProcedure.query(({ ctx }) =>
@@ -41,6 +42,28 @@ export const catalogsRouter = router({
           throw new TRPCError({ code: "NOT_FOUND", message: "Catálogo no encontrado" });
         }
         return catalog;
+      })
+    ),
+
+  // Lo mismo que WhatsApp va a mostrar cuando el corredor pegue el link, calculado con el mismo
+  // helper que usa la página pública. Sirve para la vista previa dentro de la app.
+  shareInfo: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .query(({ ctx, input }) =>
+      withAccount(ctx.accountId, async (tx) => {
+        const catalog = await tx.catalog.findFirst({
+          where: { id: input.id, accountId: ctx.accountId },
+          include: {
+            properties: {
+              orderBy: { order: "asc" },
+              include: { property: { include: { images: { orderBy: { order: "asc" }, take: 1 } } } },
+            },
+          },
+        });
+        if (!catalog) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Catálogo no encontrado" });
+        }
+        return catalogLinkMeta(catalog.name, catalog.properties.map((cp) => cp.property));
       })
     ),
 

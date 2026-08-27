@@ -7,6 +7,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "../../trpc";
 import { withAccount } from "../../db";
+import { propertyLinkMeta } from "../../services/publicPage";
 import { syncMatchesForProperty, deleteMatchesForProperty } from "../../services/matchSync";
 
 export const propertiesRouter = router({
@@ -60,6 +61,23 @@ export const propertiesRouter = router({
 
   // Etiquetas más usadas en la cartera de la cuenta, para armar los chips del filtro por tag
   // (unnest desarma el array "tags" de cada propiedad en filas para poder contarlas agrupadas).
+  // Lo mismo que WhatsApp va a mostrar cuando el corredor pegue el link, calculado con el mismo
+  // helper que usa la ficha pública. Sirve para la vista previa dentro de la app.
+  shareInfo: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .query(({ ctx, input }) =>
+      withAccount(ctx.accountId, async (tx) => {
+        const property = await tx.property.findFirst({
+          where: { id: input.id, accountId: ctx.accountId, deletedAt: null },
+          include: { images: { orderBy: { order: "asc" }, take: 1 } },
+        });
+        if (!property) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Propiedad no encontrada" });
+        }
+        return propertyLinkMeta(property);
+      })
+    ),
+
   topTags: protectedProcedure.query(({ ctx }) =>
     withAccount(ctx.accountId, async (tx) => {
       const rows = await tx.$queryRaw<{ tag: string; count: number }[]>`

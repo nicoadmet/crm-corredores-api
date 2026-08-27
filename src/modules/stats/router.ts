@@ -9,6 +9,22 @@ const PROPERTY_STATUSES = ["disponible", "reservada", "vendida", "pausada"] as c
 const LEAD_STATUSES = ["activo", "en_proceso", "cerrado", "perdido"] as const;
 
 export const statsRouter = router({
+  // Contadores que muestra la navegación al lado de cada ítem. Va aparte de `summary` a propósito:
+  // esto lo pide TODA pantalla del dashboard, así que tiene que ser lo más liviano posible.
+  navCounts: protectedProcedure.query(({ ctx }) =>
+    withAccount(ctx.accountId, async (tx) => {
+      const [properties, leads, matches, agenda, catalogs] = await Promise.all([
+        tx.property.count({ where: { accountId: ctx.accountId, deletedAt: null } }),
+        tx.lead.count({ where: { accountId: ctx.accountId, deletedAt: null } }),
+        tx.match.count({ where: { accountId: ctx.accountId } }),
+        tx.agendaEvent.count({ where: { accountId: ctx.accountId, status: "pendiente" } }),
+        tx.catalog.count({ where: { accountId: ctx.accountId } }),
+      ]);
+
+      return { properties, leads, matches, agenda, catalogs };
+    })
+  ),
+
   summary: protectedProcedure.query(({ ctx }) =>
     withAccount(ctx.accountId, async (tx) => {
       const [propertiesByStatus, leadsByStatus] = await Promise.all([

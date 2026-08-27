@@ -10,7 +10,11 @@ import { registerPublicPropertyRoute } from "./modules/properties/publicRoute";
 import { registerPublicCatalogRoute } from "./modules/catalogs/publicRoute";
 import { registerInternalNotificationsRoute } from "./modules/push/internalRoute";
 
-const server = Fastify({ logger: true });
+// trustProxy: en producción Fastify corre detrás del proxy de Render, así que sin esto
+// request.protocol siempre dice "http" y request.hostname puede ser el interno. Las páginas
+// públicas usan los dos para armar el og:url y el link del botón de WhatsApp: sin trustProxy,
+// el link que recibe el cliente sale mal. Con esto Fastify lee X-Forwarded-Proto/Host.
+const server = Fastify({ logger: true, trustProxy: true });
 
 // Fastify por default sólo sabe interpretar "application/json" y "text/plain" — cualquier otro
 // Content-Type sin parser registrado lo rechaza con 415, aunque el cuerpo venga vacío. Esto rompía

@@ -4,6 +4,10 @@ services:
       context: .
       args:
         DATABASE_URL: ${DATABASE_URL}
+    # Pisa el CMD del Dockerfile (npm start) sólo para desarrollo: "npm run dev" usa tsx watch, así
+    # el backend recarga solo al editar un archivo, igual que ya hacía el frontend. Sin esto el
+    # proceso arranca una vez y nunca se entera de los cambios, aunque el volumen los sincronice.
+    command: npm run dev
     ports:
       - "4000:4000"
     env_file:

@@ -8,6 +8,8 @@ import { leadsRouter } from "../modules/leads/router";
 import { matchesRouter } from "../modules/matches/router";
 import { catalogsRouter } from "../modules/catalogs/router";
 import { statsRouter } from "../modules/stats/router";
+import { searchRouter } from "../modules/search/router";
+import { accountRouter } from "../modules/account/router";
 import { agendaRouter } from "../modules/agenda/router";
 import { pushSubscriptionsRouter } from "../modules/push/router";
 
@@ -18,12 +20,14 @@ export const appRouter = router({
     list: publicProcedure.query(() => prisma.account.findMany()),
   }),
 
+  account: accountRouter,
   properties: propertiesRouter,
   propertyImages: propertyImagesRouter,
   leads: leadsRouter,
   matches: matchesRouter,
   catalogs: catalogsRouter,
   stats: statsRouter,
+  search: searchRouter,
   agenda: agendaRouter,
   pushSubscriptions: pushSubscriptionsRouter,
 });
