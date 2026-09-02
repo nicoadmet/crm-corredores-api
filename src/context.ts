@@ -16,6 +16,23 @@ export async function createContext({ req }: CreateFastifyContextOptions) {
 
   let user = await adminPrisma.user.findUnique({ where: { supabaseId: data.user.id } });
 
+  // Las cuentas creadas antes de que el registro pidiera el nombre quedaron con el email como
+  // nombre, y el bloque de auto-provisioning de abajo sólo corre la primera vez. Si el nombre
+  // guardado sigue siendo exactamente el email (o sea, nadie lo editó todavía) y ahora tenemos uno
+  // de verdad —del formulario de registro o de Google—, se completa solo. Si el corredor ya lo
+  // cambió a mano, no se toca.
+  if (user) {
+    const metadata = data.user.user_metadata as { name?: string; full_name?: string } | null;
+    const realName = metadata?.name?.trim() || metadata?.full_name?.trim();
+    const account = await adminPrisma.account.findUnique({
+      where: { id: user.accountId },
+      select: { name: true },
+    });
+    if (realName && account && account.name === data.user.email) {
+      await adminPrisma.account.update({ where: { id: user.accountId }, data: { name: realName } });
+    }
+  }
+
   if (!user) {
     // El nombre sale de los metadatos del usuario: lo manda el formulario de registro como `name`,
     // y Google lo devuelve como `full_name` al entrar con OAuth. Importa más de lo que parece: es
